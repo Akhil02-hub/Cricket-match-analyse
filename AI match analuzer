@@ -1,0 +1,701 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cricket AI Analyzer</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:wght@400;700&display=swap');
+
+  :root {
+    --bg: #050a0f;
+    --card: #0d1821;
+    --border: #1a2d3d;
+    --accent1: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #39ff14;
+    --text: #c8d8e8;
+    --muted: #4a6070;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: 
+      radial-gradient(ellipse at 20% 20%, rgba(0,212,255,0.05) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 80%, rgba(255,107,53,0.05) 0%, transparent 60%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .grid-bg {
+    position: fixed;
+    inset: 0;
+    background-image: 
+      linear-gradient(rgba(0,212,255,0.03) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(0,212,255,0.03) 1px, transparent 1px);
+    background-size: 40px 40px;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    position: relative;
+    z-index: 1;
+    max-width: 700px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+  }
+
+  header {
+    text-align: center;
+    padding: 30px 0 24px;
+  }
+
+  .logo {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 6px;
+    color: var(--accent1);
+    text-transform: uppercase;
+    margin-bottom: 8px;
+    opacity: 0.7;
+  }
+
+  h1 {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(20px, 5vw, 28px);
+    font-weight: 900;
+    color: #fff;
+    line-height: 1.2;
+    text-shadow: 0 0 30px rgba(0,212,255,0.3);
+  }
+
+  h1 span { color: var(--accent1); }
+
+  .subtitle {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 3px;
+    margin-top: 8px;
+    text-transform: uppercase;
+  }
+
+  /* Teams Section */
+  .teams-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin: 24px 0;
+  }
+
+  .team-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .team-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .team-card.team1::before { background: var(--accent1); }
+  .team-card.team2::before { background: var(--accent2); }
+
+  .team-label {
+    font-size: 9px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .team-name {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    color: #fff;
+  }
+
+  .team-card.team1 .team-name { color: var(--accent1); }
+  .team-card.team2 .team-name { color: var(--accent2); }
+
+  /* Stats Input */
+  .section {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 14px;
+  }
+
+  .section-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    color: var(--accent1);
+    text-transform: uppercase;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .section-title::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .stat-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-bottom: 10px;
+  }
+
+  .stat-group label {
+    display: block;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+
+  .stat-group input, .stat-group select {
+    width: 100%;
+    background: rgba(0,212,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 10px;
+    color: #fff;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    transition: border-color 0.2s;
+    outline: none;
+  }
+
+  .stat-group input:focus, .stat-group select:focus {
+    border-color: var(--accent1);
+    box-shadow: 0 0 0 2px rgba(0,212,255,0.08);
+  }
+
+  .stat-group select option { background: #0d1821; }
+
+  /* Presets */
+  .preset-btn {
+    background: rgba(0,212,255,0.06);
+    border: 1px solid rgba(0,212,255,0.2);
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: var(--accent1);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-right: 6px;
+    margin-bottom: 14px;
+  }
+
+  .preset-btn:hover {
+    background: rgba(0,212,255,0.12);
+    border-color: var(--accent1);
+  }
+
+  /* Analyze Button */
+  .analyze-btn {
+    width: 100%;
+    padding: 16px;
+    background: linear-gradient(135deg, var(--accent1), #0099cc);
+    border: none;
+    border-radius: 10px;
+    color: #000;
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 3px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: all 0.3s;
+    margin-bottom: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .analyze-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 8px 30px rgba(0,212,255,0.3);
+  }
+
+  .analyze-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  /* Loading */
+  .loading {
+    display: none;
+    text-align: center;
+    padding: 30px;
+  }
+
+  .loading.active { display: block; }
+
+  .loading-dots {
+    font-family: 'Orbitron', monospace;
+    font-size: 11px;
+    letter-spacing: 4px;
+    color: var(--accent1);
+    animation: pulse 1.5s infinite;
+  }
+
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+
+  /* Result */
+  .result-card {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    overflow: hidden;
+    animation: slideUp 0.4s ease;
+  }
+
+  .result-card.active { display: block; }
+
+  @keyframes slideUp {
+    from { opacity:0; transform:translateY(20px); }
+    to { opacity:1; transform:translateY(0); }
+  }
+
+  .result-header {
+    background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(255,107,53,0.1));
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .result-title {
+    font-family: 'Orbitron', monospace;
+    font-size: 10px;
+    letter-spacing: 4px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 6px;
+  }
+
+  .verdict {
+    font-family: 'Orbitron', monospace;
+    font-size: clamp(16px, 4vw, 22px);
+    font-weight: 900;
+    color: var(--accent3);
+    text-shadow: 0 0 20px rgba(57,255,20,0.4);
+  }
+
+  /* Probability Bar */
+  .prob-section {
+    padding: 20px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .prob-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 12px;
+  }
+
+  .prob-team {
+    font-size: 10px;
+    font-weight: 700;
+    width: 40px;
+    text-align: center;
+  }
+
+  .prob-bar-wrap {
+    flex: 1;
+    height: 28px;
+    background: rgba(255,255,255,0.04);
+    border-radius: 4px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .prob-bar {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 1.2s cubic-bezier(0.22, 1, 0.36, 1);
+    display: flex;
+    align-items: center;
+    padding-left: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    font-family: 'Orbitron', monospace;
+  }
+
+  .prob-bar.t1 { background: linear-gradient(90deg, var(--accent1), #0099cc); color: #000; }
+  .prob-bar.t2 { background: linear-gradient(90deg, var(--accent2), #cc4400); color: #fff; }
+
+  .prob-pct {
+    font-family: 'Orbitron', monospace;
+    font-size: 13px;
+    font-weight: 700;
+    width: 44px;
+    text-align: right;
+  }
+
+  /* Analysis Text */
+  .analysis-body {
+    padding: 20px;
+  }
+
+  .analysis-text {
+    font-size: 12px;
+    line-height: 1.8;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+
+  /* Disclaimer */
+  .disclaimer {
+    margin-top: 20px;
+    padding: 12px 16px;
+    background: rgba(255,107,53,0.06);
+    border: 1px solid rgba(255,107,53,0.2);
+    border-radius: 8px;
+    font-size: 10px;
+    color: var(--accent2);
+    letter-spacing: 1px;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  /* Error */
+  .error-msg {
+    display: none;
+    padding: 14px;
+    background: rgba(255,50,50,0.08);
+    border: 1px solid rgba(255,50,50,0.3);
+    border-radius: 8px;
+    color: #ff5555;
+    font-size: 11px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+
+  .error-msg.active { display: block; }
+
+  /* Footer */
+  footer {
+    text-align: center;
+    margin-top: 30px;
+    font-size: 9px;
+    letter-spacing: 2px;
+    color: var(--muted);
+  }
+</style>
+</head>
+<body>
+<div class="grid-bg"></div>
+<div class="container">
+
+  <header>
+    <div class="logo">AI-Powered</div>
+    <h1>Cricket <span>Probability</span><br>Analyzer</h1>
+    <div class="subtitle">Built with Claude AI · Statistical Analysis Engine</div>
+  </header>
+
+  <!-- Editable Team Names -->
+  <div class="teams-grid">
+    <div class="team-card team1">
+      <div class="team-label">Team 1 Name</div>
+      <input type="text" id="team1_name" value="RCB" oninput="updateNames()"
+        style="background:transparent;border:none;border-bottom:1px solid var(--accent1);color:var(--accent1);font-family:'Orbitron',monospace;font-size:14px;font-weight:700;width:100%;outline:none;padding:4px 0;">
+    </div>
+    <div class="team-card team2">
+      <div class="team-label">Team 2 Name</div>
+      <input type="text" id="team2_name" value="SRH" oninput="updateNames()"
+        style="background:transparent;border:none;border-bottom:1px solid var(--accent2);color:var(--accent2);font-family:'Orbitron',monospace;font-size:14px;font-weight:700;width:100%;outline:none;padding:4px 0;">
+    </div>
+  </div>
+
+  <!-- Quick Preset -->
+  <button class="preset-btn" onclick="loadRCBvsSRH()">⚡ Load RCB vs SRH Data</button>
+
+  <!-- Team 1 Stats -->
+  <div class="section">
+    <div class="section-title" id="label_t1">RCB — Team Stats (Last 1 Year)</div>
+    <div class="stat-row">
+      <div class="stat-group">
+        <label>Matches Played</label>
+        <input type="number" id="t1_matches" placeholder="e.g. 14" min="1" max="30">
+      </div>
+      <div class="stat-group">
+        <label>Wins</label>
+        <input type="number" id="t1_wins" placeholder="e.g. 8" min="0" max="30">
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-group">
+        <label>Avg Score (batting)</label>
+        <input type="number" id="t1_avg_score" placeholder="e.g. 172" min="0" max="300">
+      </div>
+      <div class="stat-group">
+        <label>Avg Conceded</label>
+        <input type="number" id="t1_conceded" placeholder="e.g. 165" min="0" max="300">
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-group">
+        <label>Key Batter Avg</label>
+        <input type="number" id="t1_batter" placeholder="e.g. 42" min="0" max="100">
+      </div>
+      <div class="stat-group">
+        <label>Key Bowler Econ</label>
+        <input type="number" id="t1_bowler" placeholder="e.g. 7.8" step="0.1" min="0" max="20">
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-group">
+        <label>Home/Away</label>
+        <select id="t1_venue">
+          <option value="home">Playing at Home</option>
+          <option value="away">Playing Away</option>
+          <option value="neutral">Neutral Venue</option>
+        </select>
+      </div>
+      <div class="stat-group">
+        <label>Recent Form (last 5)</label>
+        <input type="text" id="t1_form" placeholder="e.g. WWLWW" maxlength="5">
+      </div>
+    </div>
+  </div>
+
+  <!-- Team 2 Stats -->
+  <div class="section">
+    <div class="section-title" id="label_t2">SRH — Team Stats (Last 1 Year)</div>
+    <div class="stat-row">
+      <div class="stat-group">
+        <label>Matches Played</label>
+        <input type="number" id="t2_matches" placeholder="e.g. 14" min="1" max="30">
+      </div>
+      <div class="stat-group">
+        <label>Wins</label>
+        <input type="number" id="t2_wins" placeholder="e.g. 6" min="0" max="30">
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-group">
+        <label>Avg Score (batting)</label>
+        <input type="number" id="t2_avg_score" placeholder="e.g. 180" min="0" max="300">
+      </div>
+      <div class="stat-group">
+        <label>Avg Conceded</label>
+        <input type="number" id="t2_conceded" placeholder="e.g. 170" min="0" max="300">
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-group">
+        <label>Key Batter Avg</label>
+        <input type="number" id="t2_batter" placeholder="e.g. 38" min="0" max="100">
+      </div>
+      <div class="stat-group">
+        <label>Key Bowler Econ</label>
+        <input type="number" id="t2_bowler" placeholder="e.g. 8.2" step="0.1" min="0" max="20">
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-group">
+        <label>Home/Away</label>
+        <select id="t2_venue">
+          <option value="away">Playing Away</option>
+          <option value="home">Playing at Home</option>
+          <option value="neutral">Neutral Venue</option>
+        </select>
+      </div>
+      <div class="stat-group">
+        <label>Recent Form (last 5)</label>
+        <input type="text" id="t2_form" placeholder="e.g. WLLWL" maxlength="5">
+      </div>
+    </div>
+  </div>
+
+  <!-- Head to Head -->
+  <div class="section">
+    <div class="section-title">Head to Head (Last 1 Year)</div>
+    <div class="stat-row">
+      <div class="stat-group">
+        <label>H2H Matches</label>
+        <input type="number" id="h2h_total" placeholder="e.g. 2" min="0" max="10">
+      </div>
+      <div class="stat-group">
+        <label>RCB Wins in H2H</label>
+        <input type="number" id="h2h_t1" placeholder="e.g. 1" min="0" max="10">
+      </div>
+    </div>
+    <div class="stat-row">
+      <div class="stat-group">
+        <label>Pitch Type</label>
+        <select id="pitch">
+          <option value="batting">Batting Friendly</option>
+          <option value="bowling">Bowling Friendly</option>
+          <option value="balanced">Balanced</option>
+        </select>
+      </div>
+      <div class="stat-group">
+        <label>Toss Winner Advantage</label>
+        <select id="toss">
+          <option value="moderate">Moderate</option>
+          <option value="high">High</option>
+          <option value="low">Low</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <div class="error-msg" id="errorMsg">⚠ Please fill in all required stats before analyzing.</div>
+
+  <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">
+    ⚡ ANALYZE WITH AI
+  </button>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="loading-dots">RUNNING AI ANALYSIS...</div>
+    <div style="font-size:10px;color:var(--muted);margin-top:10px;letter-spacing:2px;">Processing statistical models</div>
+  </div>
+
+  <!-- Result -->
+  <div class="result-card" id="resultCard">
+    <div class="result-header">
+      <div class="result-title">AI Prediction Verdict</div>
+      <div class="verdict" id="verdict">—</div>
+    </div>
+    <div class="prob-section">
+      <div class="prob-row">
+        <div class="prob-team" id="bar_t1" style="color:var(--accent1)">RCB</div>
+        <div class="prob-bar-wrap">
+          <div class="prob-bar t1" id="bar1" style="width:0%"></div>
+        </div>
+        <div class="prob-pct" id="pct1" style="color:var(--accent1)">—</div>
+      </div>
+      <div class="prob-row">
+        <div class="prob-team" id="bar_t2" style="color:var(--accent2)">SRH</div>
+        <div class="prob-bar-wrap">
+          <div class="prob-bar t2" id="bar2" style="width:0%"></div>
+        </div>
+        <div class="prob-pct" id="pct2" style="color:var(--accent2)">—</div>
+      </div>
+    </div>
+    <div class="analysis-body">
+      <div class="analysis-text" id="analysisText"></div>
+    </div>
+  </div>
+
+  <div class="disclaimer">
+    ⚠ THIS IS AN AI STATISTICAL ANALYSIS TOOL · NOT A BETTING TIP<br>
+    Cricket has inherent unpredictability. No model guarantees outcomes.<br>
+    Built by Akhil · Powered by Claude AI
+  </div>
+
+  <footer>AI ENGINEER ROADMAP PROJECT · AKHIL02-HUB · 2026</footer>
+
+</div>
+
+<script>
+function updateNames() {
+  const t1 = document.getElementById('team1_name').value || 'Team 1';
+  const t2 = document.getElementById('team2_name').value || 'Team 2';
+  document.getElementById('label_t1').textContent = t1 + ' — Team Stats (Last 1 Year)';
+  document.getElementById('label_t2').textContent = t2 + ' — Team Stats (Last 1 Year)';
+  document.getElementById('bar_t1').textContent = t1;
+  document.getElementById('bar_t2').textContent = t2;
+}
+
+function loadRCBvsSRH() {
+  // IPL 2025 approximate data
+  document.getElementById('t1_matches').value = 14;
+  document.getElementById('t1_wins').value = 8;
+  document.getElementById('t1_avg_score').value = 175;
+  document.getElementById('t1_conceded').value = 168;
+  document.getElementById('t1_batter').value = 45;
+  document.getElementById('t1_bowler').value = 8.1;
+  document.getElementById('t1_venue').value = 'away';
+  document.getElementById('t1_form').value = 'WWLWW';
+
+  document.getElementById('t2_matches').value = 14;
+  document.getElementById('t2_wins').value = 6;
+  document.getElementById('t2_avg_score').value = 183;
+  document.getElementById('t2_conceded').value = 178;
+  document.getElementById('t2_batter').value = 40;
+  document.getElementById('t2_bowler').value = 8.6;
+  document.getElementById('t2_venue').value = 'home';
+  document.getElementById('t2_form').value = 'WLLWL';
+
+  document.getElementById('h2h_total').value = 2;
+  document.getElementById('h2h_t1').value = 1;
+  document.getElementById('pitch').value = 'batting';
+  document.getElementById('toss').value = 'moderate';
+}
+
+function getFormScore(form) {
+  if (!form) return 0.5;
+  const chars = form.toUpperCase().split('');
+  const wins = chars.filter(c => c === 'W').length;
+  return wins / chars.length;
+}
+
+async function analyze() {
+  const btn = document.getElementById('analyzeBtn');
+  const loading = document.getElementById('loading');
+  const resultCard = document.getElementById('resultCard');
+  const errorMsg = document.getElementById('errorMsg');
+
+  // Gather inputs
+  const t1name = document.getElementById('team1_name').value || 'Team 1';
+  const t2name = document.getElementById('team2_name').value || 'Team 2';
+
+  const t1m = parseFloat(document.getElementById('t1_matches').value);
+  const t1w = parseFloat(document.getElementById('t1_wins').value);
+  const t1as = parseFloat(document.getElementById('t1_avg_score').value);
+  const t1ac = parseFloat(document.getElementById('t1_conceded').value);
+  const t1bat = parseFloat(document.getElementById('t1_batter').value);
+  const t1bowl = parseFloat(document.getElementById('t1_bowler').value);
+  const t1venue = document.getElementById('t1_venue').value;
+  const t1form = document.getElementById('t1_form').value;
+
+  const t2m = parseFloat(document.getElementById('t2_matches').value);
+  const t2w = parseFloat(document.getElementById('t2_wins').value);
+  const t2as = parseFloat(document.getElementById('t2_avg_score').value);
+  const t2ac = parseFloat(document.getElementById('t2_conceded').value);
+  const t2bat = parseFloat(document.getElementById('t2_batter').value);
+  const t2bowl = parseFloat(document.getElementById('t2_bowler').value);
+  const t2venue = document.getElementById('t2_venue').value;
+  const t2form = document.getElementById('t2_form').value;
+
+  const h2h_total = parseFloat(document.getElementById('h2h_total').value) || 0;
+  const h2h_t1 = parseFloat(document.getElementById('h2h_t1').value) || 0;
+  const pitch = document.getElementById('pitch').value;
+  const toss = document.getElementById('toss').value
